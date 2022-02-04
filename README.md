@@ -1,1 +1,1 @@
-Some documentation will be here. Just after adding GitHub Action
+Just after adding GitHub Action
