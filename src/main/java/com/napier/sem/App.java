@@ -139,11 +139,12 @@ public class App {
                             + "Manager: " + emp.manager + "\n");
         }
     }
-    /// Lab 6 mieliśmy dokończyć, ale nie wiem co to ma robić
+    /// Lab 6 mieliśmy dokończyć, to chyba zapytanie SQL, żeby zwróciło numer departamentu po podaniu nazwy
     public Department getDepartment(String dept_name) {
         return null;
     }
 
+    /// w notatkach jest zapytanie SQL, trzeba by wywołać getDepartment
     public ArrayList<Employee> getSalariesByDepartment(Department dept) {
         return null;
     }
