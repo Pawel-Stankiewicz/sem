@@ -5,18 +5,20 @@ import java.util.ArrayList;
 
 public class App {
     public static void main(String[] args) {
-        // Create new Application
+        // Create new Application and connect to database
         App a = new App();
 
-        // Connect to database
-        a.connect();
+        if(args.length < 1){
+            a.connect("localhost:33060", 30000);
+        }else{
+            a.connect(args[0], Integer.parseInt(args[1]));
+        }
 
-        // Extract employee salary information
-        ArrayList<Employee> employees = a.getAllSalaries();
+        Department dept = a.getDepartment("Development");
+        ArrayList<Employee> employees = a.getSalariesByDepartment(dept);
 
-        // Test the size of the returned data - should be 240124
-        System.out.println(employees.size());
 
+        // Print salary report
         a.printSalaries(employees);
 
         // Disconnect from database
@@ -31,7 +33,7 @@ public class App {
     /**
      * Connect to the MySQL database.
      */
-    public void connect() {
+    public void connect(String location, int delay) {
         try {
             // Load Database driver
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -45,13 +47,15 @@ public class App {
             System.out.println("Connecting to database...");
             try {
                 // Wait a bit for db to start
-                Thread.sleep(30000);
+                Thread.sleep(delay);
                 // Connect to database
-                con = DriverManager.getConnection("jdbc:mysql://db:3306/employees?useSSL=false", "root", "example");
+                con = DriverManager.getConnection("jdbc:mysql://" + location
+                                + "/employees?allowPublicKeyRetrieval=true&useSSL=false",
+                        "root", "example");
                 System.out.println("Successfully connected");
                 break;
             } catch (SQLException sqle) {
-                System.out.println("Failed to connect to database attempt " + Integer.toString(i));
+                System.out.println("Failed to connect to database attempt " +                                  Integer.toString(i));
                 System.out.println(sqle.getMessage());
             } catch (InterruptedException ie) {
                 System.out.println("Thread interrupted? Should not happen.");
@@ -149,15 +153,81 @@ public class App {
                             + "Manager: " + emp.manager + "\n");
         }
     }
-    /// Lab 6 mieliśmy dokończyć, to chyba zapytanie SQL, żeby zwróciło numer departamentu po podaniu nazwy
-    public Department getDepartment(String dept_name) {
+    /**
+     * Customer Service
+     * Development
+     * Finance
+     * Human Resources
+     * Marketing
+     * Production
+     * Quality Management
+     * Research
+     * Sales
+     * @param dept_name
+     * @return
+     */
+    public Department getDepartment(String dept_name){
+        try {
+            // Create an SQL statement
+            Statement stmt = con.createStatement();
+            // Create string for SQL statement
+            String strSelect = "SELECT * FROM departments, dept_manager, employees" +
+                    " WHERE dept_name = '" + dept_name + "'" +
+                    "  AND  departments.dept_no = dept_manager.dept_no" +
+                    "  AND dept_manager.to_date = '9999-01-01'" +
+                    "  AND employees.emp_no = dept_manager.emp_no";
+            // Execute SQL statement
+            ResultSet rset = stmt.executeQuery(strSelect);
+            // Extract employee information
+            ArrayList<Employee> employees = new ArrayList<Employee>();
+            if (rset.next()) {
+                Employee manager = new Employee();
+                manager.emp_no = rset.getInt("employees.emp_no");
+                manager.first_name = rset.getString("employees.first_name");
+                manager.last_name = rset.getString("employees.last_name");
+                String dept_no = rset.getString("departments.dept_no");
+                Department department = new Department(dept_no, dept_name, manager);
+                return department;
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            System.out.println("Failed to get salary details");
+            return null;
+        }
         return null;
     }
 
-    /// w notatkach jest zapytanie SQL, trzeba by wywołać getDepartment
-    public ArrayList<Employee> getSalariesByDepartment(Department dept) {
-        return null;
+    public ArrayList<Employee> getSalariesByDepartment(Department dept){
+        try {
+            // Create an SQL statement
+            Statement stmt = con.createStatement();
+            // Create string for SQL statement
+            String strSelect = "SELECT employees.emp_no, employees.first_name, employees.last_name, salaries.salary" +
+                    " FROM employees, salaries, dept_emp, departments" +
+                    " WHERE employees.emp_no = salaries.emp_no" +
+                    "  AND employees.emp_no = dept_emp.emp_no" +
+                    "  AND dept_emp.dept_no = departments.dept_no" +
+                    "  AND salaries.to_date = '9999-01-01'" +
+                    "  AND departments.dept_no = '" + dept.getDept_no() + "'" +
+                    " ORDER BY employees.emp_no ASC";
+            // Execute SQL statement
+            ResultSet rset = stmt.executeQuery(strSelect);
+            // Extract employee information
+            ArrayList<Employee> employees = new ArrayList<Employee>();
+            while (rset.next()) {
+                Employee emp = new Employee();
+                emp.emp_no = rset.getInt("employees.emp_no");
+                emp.first_name = rset.getString("employees.first_name");
+                emp.last_name = rset.getString("employees.last_name");
+                emp.salary = rset.getInt("salaries.salary");
+                employees.add(emp);
+            }
+            return employees;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            System.out.println("Failed to get salary details");
+            return null;
+        }
     }
-
-
 }
